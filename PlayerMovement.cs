@@ -42,6 +42,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     float scrollSpeed = 1f;
 
+    bool hardness;
+
 
     
 
@@ -52,7 +54,7 @@ public class PlayerMovement : MonoBehaviour
         //set page of towers to 0
         towerPage = 0;
         // set the maximum pages of towers
-        TowerPageMax = Mathf.CeilToInt(((float)Towers.Count + 1) / 8) - 1;
+        TowerPageMax = Mathf.CeilToInt(((float)Towers.Count + 1) / (((Screen.height - 315) / 100) * 2)) - 1;
 
         // get the mouse position
         MouseLastX = (int)Input.mousePosition.x;
@@ -60,7 +62,7 @@ public class PlayerMovement : MonoBehaviour
         //set the music to repeat
         music = PlayerPrefs.GetInt("music", 1) ==1;
         this.GetComponent<AudioListener>().enabled = music;
-
+        hardness = PlayerPrefs.GetInt("Hardness", 0) == 1;
         //set starting money and initalize variables
         Options = false;
         money = StartingMoney;
@@ -95,15 +97,21 @@ public class PlayerMovement : MonoBehaviour
         selectorGrid = GUI.SelectionGrid(new Rect(ResolutionWidth - 200, 105, 200, ResolutionHeight - 315), selectorGrid, TowerSelectionGrid.ToArray(), 2);
 
         //draw the next button for tower page
-        if (towerPage == 0 )
+        if (towerPage == TowerPageMax )
             GUI.Box(new Rect(ResolutionWidth - 98, ResolutionHeight - 205, 98, 100), new GUIContent("<color=#808080ff>next</color>"));
         else
-            GUI.Button(new Rect(ResolutionWidth - 98, ResolutionHeight - 205, 98, 100), new GUIContent("next"));
+            if(GUI.Button(new Rect(ResolutionWidth - 98, ResolutionHeight - 205, 98, 100), new GUIContent("next")))
+        {
+            towerPage += 1;
+        }
         //draw the previous button for tower page
-        if (towerPage == TowerPageMax)
+        if (towerPage == 0)
             GUI.Box(new Rect(ResolutionWidth - 200, ResolutionHeight - 205, 98, 100), new GUIContent("<color=#808080ff>Previous</color>"));
         else
-            GUI.Button(new Rect(ResolutionWidth - 200, ResolutionHeight - 205, 98, 100), new GUIContent("Previous"));
+            if(GUI.Button(new Rect(ResolutionWidth - 200, ResolutionHeight - 205, 98, 100), new GUIContent("Previous")))
+        {
+            towerPage -= 1;
+        }
 
         //check if the player can go to the next wave
 		if(WaveManager.CanNextWave)
@@ -173,7 +181,7 @@ public class PlayerMovement : MonoBehaviour
         if (Options)
         {
             //draw options box
-            Rect OptionsBox = new Rect((ResolutionWidth - 200) / 2, (ResolutionHeight - 132) / 2, 200, 132);
+            Rect OptionsBox = new Rect((ResolutionWidth - 200) / 2, (ResolutionHeight - 132) / 2, 200, 152);
             GUI.Box(OptionsBox, "");
 
             //draw the quit buttons
@@ -181,6 +189,8 @@ public class PlayerMovement : MonoBehaviour
                 Application.Quit();
             if (GUI.Button(new Rect(OptionsBox.xMin + (OptionsBox.width - 150) / 2, OptionsBox.yMin + 66, 150, 50), "Quit To Main Menu"))
                UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+            hardness = !GUI.Toggle(new Rect(OptionsBox.xMin + (OptionsBox.width - 150) / 2, OptionsBox.yMin + 116, 150, 50), hardness,"Hard Mode");
+            PlayerPrefs.SetInt("Hardness", hardness?1:0);
         }
         //show the diologue for selling towers
         else if (ThingToSell != null)
@@ -194,7 +204,7 @@ public class PlayerMovement : MonoBehaviour
             //shjow sell button
             if(GUI.Button(new Rect(rect.xMin + 4,rect.yMin + 4,92,24), "Sell", GUI.skin.button))
             {
-                money += ThingToSell.getCost() / 2;
+                money += hardness? ThingToSell.getCost() / 2:0;
                 Destroy(ThingToSell.gameObject);
             }
             //show cancel button
@@ -218,10 +228,10 @@ public class PlayerMovement : MonoBehaviour
                     BuildTile Tile = hit.transform.gameObject.GetComponent<BuildTile>();
                     if (Tile.Tower == null)
                     {
-                        if (money >= Towers[selectorGrid].TowerObject.GetComponent<Tower>().getCost())
+                        if (money >= Towers[selectorGrid + towerPage * boxNumber].TowerObject.GetComponent<Tower>().getCost())
                         {
-                            money -= Towers[selectorGrid].TowerObject.GetComponent<Tower>().getCost();
-                            Tile.Tower = (Instantiate(Towers[selectorGrid].TowerObject, hit.transform.position + new Vector3(0, .75f, 0), new Quaternion()) as GameObject);
+                            money -= Towers[selectorGrid + towerPage * boxNumber].TowerObject.GetComponent<Tower>().getCost();
+                            Tile.Tower = (Instantiate(Towers[selectorGrid + towerPage * boxNumber].TowerObject, hit.transform.position + new Vector3(0, .75f, 0), new Quaternion()) as GameObject);
                         }
                     }
                 }
